@@ -63,7 +63,7 @@ function findLocalRecipes(ingredients: string) {
     .filter((recipe) => recipe.relevance > 0)
     .sort((a, b) => b.relevance - a.relevance)
     .slice(0, 3)
-    .map(({ relevance: _relevance, ...recipe }) => recipe);
+    .map(({ name, ingredients, temperatureC, minutes, steps }) => ({ name, ingredients, temperatureC, minutes, steps }));
 }
 
 const mealDbIngredientMap: [string, string][] = [

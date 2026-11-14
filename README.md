@@ -34,6 +34,11 @@ Nunca coloque a chave em componentes React ou em variáveis com prefixo `NEXT_PU
 - **Modelo:** Gemini recebe o pedido e escreve a resposta.
 - **Agente:** a lógica do servidor envia o pedido ao modelo, executa a ferramenta que ele escolher e envia o resultado de volta para ele.
 - **MCP:** padroniza a conexão cliente-servidor e a descrição/chamada das ferramentas. `src/lib/recipe-mcp.ts` define o servidor e `src/app/api/recipe/route.ts` contém o cliente.
-- **Skill:** `skills/air-fryer-cook/SKILL.md` guarda instruções reutilizáveis. O app lê o arquivo e passa o conteúdo como instrução de sistema ao modelo. O arquivo organiza as regras; quem as aplica ainda é o modelo.
+- **Skills:** `skills/air-fryer-cook/SKILL.md` ensina o agente a montar receitas; `skills/recipe-adjuster/SKILL.md` orienta substituições e conversões. `src/lib/skill-loader.ts` escolhe qual instrução carregar a partir do pedido. O arquivo organiza as regras; quem as aplica ainda é o modelo.
+- **Harness de avaliação:** `evals/recipe-agent.cases.json` registra cenários reproduzíveis e `scripts/evals/recipe-agent-harness.mjs` executa cada um contra o servidor MCP e o seletor de skills, sem chamar Gemini nem gastar cota. Rode `npm run eval:agent` após mudar uma ferramenta, skill ou regra de seleção (requer Node.js 22.18+). O harness confere comportamento determinístico; ele não mede a qualidade do texto gerado pelo modelo.
 
 O transporte MCP está em memória para o primeiro exercício: os dois lados rodam dentro do app e não exigem outro processo. A pesquisa web usa a ferramenta Google Search oferecida pela Gemini API; o catálogo inicial fica no servidor MCP. Depois podemos mover o servidor para um processo separado por stdio/HTTP e trocar o catálogo local por uma fonte de receitas própria.
+
+## Aprender com o harness
+
+Abra `evals/recipe-agent.cases.json` para ver os casos de avaliação. Cada cenário pode conferir ferramentas MCP anunciadas, uma chamada e sua resposta, ou quais skills são carregadas para um pedido. Adicione um caso quando mudar o comportamento esperado. O comando é local e não precisa de `GEMINI_API_KEY`.

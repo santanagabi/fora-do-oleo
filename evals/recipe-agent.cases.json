@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "description": "Casos locais e determinísticos para avaliar descoberta de ferramentas MCP, respostas do catálogo e seleção de skills. Não chama um modelo de IA.",
+  "scenarios": [
+    {
+      "id": "mcp-tools-are-discoverable",
+      "type": "tools",
+      "expectedTools": [
+        "buscar_receitas_air_fryer",
+        "buscar_receita_de_reserva",
+        "converter_medida_culinaria"
+      ]
+    },
+    {
+      "id": "recipe-search-includes-cooking-safety",
+      "type": "mcp-call",
+      "tool": "buscar_receitas_air_fryer",
+      "arguments": { "ingredientes": "frango, limão e farinha" },
+      "expectedText": ["Frango cítrico crocante", "190", "completamente cozido"]
+    },
+    {
+      "id": "mass-to-volume-uses-ingredient-density",
+      "type": "mcp-call",
+      "tool": "converter_medida_culinaria",
+      "arguments": { "quantidade": 200, "unidade_origem": "g", "unidade_destino": "xícara", "ingrediente": "açúcar" },
+      "expectedText": ["200 g = 1 xícara", "Estimativa para açúcar"]
+    },
+    {
+      "id": "mass-to-volume-requires-ingredient",
+      "type": "mcp-call",
+      "tool": "converter_medida_culinaria",
+      "arguments": { "quantidade": 100, "unidade_origem": "g", "unidade_destino": "colher de sopa" },
+      "expectedError": true,
+      "expectedText": ["preciso saber o ingrediente"]
+    },
+    {
+      "id": "basic-request-loads-cooking-skill",
+      "type": "skills",
+      "prompt": "Pesquise uma receita de frango na air fryer",
+      "expectedSkills": ["air-fryer-cook"]
+    },
+    {
+      "id": "follow-up-loads-adjustment-skill",
+      "type": "skills",
+      "prompt": "Não tenho açúcar; substitua e converta 200 g para xícaras",
+      "expectedSkills": ["air-fryer-cook", "recipe-adjuster"]
+    }
+  ]
+}

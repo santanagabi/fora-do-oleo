@@ -1,32 +1,55 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
 
 const examples = ["frango, limão e farinha", "batata, parmesão e páprica", "banana, aveia e canela"];
 const FAVORITES_KEY = "fora-do-oleo:favorites:v1";
+const FAVORITES_EVENT = "fora-do-oleo:favorites-changed";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string; sources?: { title: string; url: string }[]; fallback?: boolean; fallbackAi?: boolean };
 type FavoriteRecipe = { id: string; title: string; content: string };
 
+function subscribeToFavorites(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(FAVORITES_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(FAVORITES_EVENT, onStoreChange);
+  };
+}
+
+function getFavoritesSnapshot() {
+  try {
+    return window.localStorage.getItem(FAVORITES_KEY) || "[]";
+  } catch {
+    return "[]";
+  }
+}
+
+function getServerFavoritesSnapshot() {
+  return "[]";
+}
+
+function parseFavorites(snapshot: string): FavoriteRecipe[] {
+  try {
+    const parsed: unknown = JSON.parse(snapshot);
+    return Array.isArray(parsed) ? parsed as FavoriteRecipe[] : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [favorites, setFavorites] = useState<FavoriteRecipe[]>([]);
+  const favoritesSnapshot = useSyncExternalStore(subscribeToFavorites, getFavoritesSnapshot, getServerFavoritesSnapshot);
+  const favorites = useMemo(() => parseFavorites(favoritesSnapshot), [favoritesSnapshot]);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [interactionId, setInteractionId] = useState<string>();
   const [error, setError] = useState("");
   const [apiErrorCode, setApiErrorCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(FAVORITES_KEY);
-      if (saved) setFavorites(JSON.parse(saved) as FavoriteRecipe[]);
-    } catch {
-      setFavorites([]);
-    }
-  }, []);
 
   async function submitPrompt(value: string, forceFallback = false) {
     const nextPrompt = value.trim();
@@ -74,8 +97,8 @@ export default function Home() {
     const next = existing
       ? favorites.filter((favorite) => favorite.id !== message.id)
       : [{ id: message.id, title, content: message.content }, ...favorites];
-    setFavorites(next);
     window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event(FAVORITES_EVENT));
   }
 
   return (
