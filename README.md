@@ -2,6 +2,12 @@
 
 Um pequeno laboratório para aprender IA generativa, agentes e MCP criando receitas para air fryer.
 
+## Prévia
+
+![Tela inicial do Fora do Óleo](docs/screenshots/inicio.png)
+
+![Formulário de ingredientes e sugestões](docs/screenshots/despensa.png)
+
 ## Rodar localmente
 
 1. Instale as dependências com `npm install`.
