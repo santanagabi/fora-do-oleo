@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fora do Óleo
 
-## Getting Started
+Um pequeno laboratório para aprender IA generativa, agentes e MCP criando receitas para air fryer.
 
-First, run the development server:
+## Rodar localmente
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Instale as dependências com `npm install`.
+2. Crie uma chave da Gemini API no Google AI Studio.
+3. Copie `.env.example` para `.env.local` e coloque sua chave em `GEMINI_API_KEY`.
+4. Rode `npm run dev` e abra `http://localhost:3000`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O botão de favoritas guarda respostas no `localStorage` do navegador atual. Reabrir uma favorita não chama o modelo. Não há conta nem sincronização entre dispositivos ainda.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+O botão **Testar sem IA** chama o servidor MCP de reserva: primeiro tenta a API pública TheMealDB (com cache de uma hora); se ela não tiver correspondência, tenta o pequeno catálogo local. Se a chamada ao Gemini falhar por cota ou indisponibilidade, o app tenta a mesma reserva automaticamente. Receitas de reserva vindas da TheMealDB mantêm as instruções originais e avisam que não foram pensadas especificamente para air fryer.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Nunca coloque a chave em componentes React ou em variáveis com prefixo `NEXT_PUBLIC_`: chaves de provedor devem ficar no servidor.
 
-## Learn More
+## O que acontece quando você pede uma receita
 
-To learn more about Next.js, take a look at the following resources:
+1. O formulário do navegador envia os ingredientes para `POST /api/recipe`.
+2. O Route Handler do Next.js valida o pedido e lê a chave guardada no servidor.
+3. O Gemini pesquisa receitas na web e recebe a lista de ferramentas MCP disponíveis.
+4. O modelo pode chamar `buscar_receitas_air_fryer` ou `converter_medida_culinaria`; o Route Handler executa as chamadas MCP e devolve os resultados ao Gemini.
+5. A resposta aparece na conversa. Nas mensagens seguintes, `previous_interaction_id` mantém o contexto da receita para pedidos como “não tenho açúcar” ou “converta para colheres”.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Conceitos que aparecem aqui
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Modelo:** Gemini recebe o pedido e escreve a resposta.
+- **Agente:** a lógica do servidor envia o pedido ao modelo, executa a ferramenta que ele escolher e envia o resultado de volta para ele.
+- **MCP:** padroniza a conexão cliente-servidor e a descrição/chamada das ferramentas. `src/lib/recipe-mcp.ts` define o servidor e `src/app/api/recipe/route.ts` contém o cliente.
+- **Skill:** `skills/air-fryer-cook/SKILL.md` guarda instruções reutilizáveis. O app lê o arquivo e passa o conteúdo como instrução de sistema ao modelo. O arquivo organiza as regras; quem as aplica ainda é o modelo.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+O transporte MCP está em memória para o primeiro exercício: os dois lados rodam dentro do app e não exigem outro processo. A pesquisa web usa a ferramenta Google Search oferecida pela Gemini API; o catálogo inicial fica no servidor MCP. Depois podemos mover o servidor para um processo separado por stdio/HTTP e trocar o catálogo local por uma fonte de receitas própria.
